@@ -33,7 +33,10 @@ open import Cubical.Foundations.Isomorphism
 open import Cubical.Foundations.Function hiding (const)
 open import Cubical.Foundations.Equiv
 open import Cubical.Foundations.Univalence
+open import Cubical.Relation.Nullary
 
+open import Cubical.Data.Empty as Empty renaming (⊥ to ∅)
+open import Cubical.Data.Fin
 open import Cubical.Data.Sigma
 open import Cubical.Data.Nat
 open import Cubical.Data.Nat.Order.Inductive hiding (eq)
@@ -223,8 +226,24 @@ module STT (I : Interval ℓ-zero) where -- we assume the existence of an interv
   Definition-4-8 .fst = isSegal
   Definition-4-8 .snd = isInnerAnodyne
 
-  Theorem-4-9 : (n k : ℕ) → 0 <ᵗ k → k <ᵗ n → isInnerAnodyne ⦅ ƛ n k ⦆
-  Theorem-4-9 = isInnerAnodyneHornInclusion
+  Theorem-4-9 : (n k : ℕ) (p : 0 <ᵗ k) (q : k <ᵗ n)
+              → isInnerAnodyne ⦅ ƛ n (k , <ᵗ-trans-suc {k} q) ⦆
+  Theorem-4-9 n k p q = isInnerAnodyneHornInclusion n 𝕜 p' q'
+   where
+    𝕜 : Fin (suc n)
+    𝕜 = (k , <ᵗ-trans-suc {k} q)
+    p' : ¬ fzero ≡ 𝕜
+    p' h = Empty.rec (¬m<ᵗm {k} (subst (_<ᵗ k) (cong fst h) p))
+    q' : ¬ flast ≡ 𝕜
+    q' h = Empty.rec (¬m<ᵗm {k} (subst (k <ᵗ_) (cong fst h) q))
 
-  Remark-4-11 : (n k : ℕ) → 0 <ᵗ k → k <ᵗ n → isInnerAnodyneFib ⦅ ƛ n k ⦆
-  Remark-4-11 = isInnerAnodyneFibHornInclusion
+  Remark-4-11 : (n k : ℕ) (p : 0 <ᵗ k) (q : k <ᵗ n)
+              → isInnerAnodyneFib ⦅ ƛ n (k , <ᵗ-trans-suc {k} q) ⦆
+  Remark-4-11 n k p q = isInnerAnodyneFibHornInclusion n 𝕜 p' q'
+   where
+    𝕜 : Fin (suc n)
+    𝕜 = (k , <ᵗ-trans-suc {k} q)
+    p' : ¬ fzero ≡ 𝕜
+    p' h = Empty.rec (¬m<ᵗm {k} (subst (_<ᵗ k) (cong fst h) p))
+    q' : ¬ flast ≡ 𝕜
+    q' h = Empty.rec (¬m<ᵗm {k} (subst (k <ᵗ_) (cong fst h) q))
