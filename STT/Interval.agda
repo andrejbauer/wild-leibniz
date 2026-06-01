@@ -164,22 +164,17 @@ module HornLifting (I' : Interval ℓ) where
   ⟦_⟧ = fst
 
   -- horns.
-  {- Because of an indexing mistake in an earlier version of the paper, `Λ n k`
-  implements the horn Λⁿₙ₋ₖ instead of the horn Λⁿₖ. The sitatuation is entirely
-  symmetric and this indexing mistake has no consequence for the main theorem
-  because, if we quantify over all (inner) horns, both implementation are
-  equivalent. Nevertheless, this indexing mistake will be fixed. -}
-  Λ : (n k : ℕ) → Type ℓ
+  Λ : (n : ℕ) (k : Fin (suc n)) → Type ℓ
   Λ n k = Σ[ x ∈ Δ n ] ∃[ j ∈ Fin (suc n) ]
-          (¬ (fst j ≡ n ∸ k)) × (⟦ x ⟧ (injectSuc j) ≡ ⟦ x ⟧ (fsuc j))
+          (¬ (j ≡ k)) × (⟦ x ⟧ (injectSuc j) ≡ ⟦ x ⟧ (fsuc j))
 
-  isSetΛ : {n k : ℕ} → isSet (Λ n k)
+  isSetΛ : {n : ℕ} {k : Fin (suc n)} → isSet (Λ n k)
   isSetΛ {n = n} =
     isSetΣ isSetΔ λ _ → isProp→isSet squash₁
 
 
-  -- horn inclusoins
-  ƛ : (n k : ℕ) → Λ n k → Δ n
+  -- horn inclusions
+  ƛ : (n : ℕ) (k : Fin (suc n)) → Λ n k → Δ n
   ƛ n k = fst
 
   ΔPath : (n : ℕ) (x y : Δ n) → fst x ≡ fst y → x ≡ y
@@ -210,18 +205,18 @@ module HornLifting (I' : Interval ℓ) where
   -- Goal : Show (ƛ n k) is a retract of (ƛ n k) ⊠ᵐ (ƛ 2 1)
 
   -- definition of the section
-  module _ (n k : ℕ) where
+  module _ (n : ℕ) (k : Fin (suc n)) where
     Δ→Δ₂ : Δ n → Δ 2
     Δ→Δ₂ (f , l , m , r) .fst (zero , _) = 1l
-    Δ→Δ₂ (f , l , m , r) .fst (suc zero , _) = f (n ∸ k , ∸-<ᵗ-suc n k)
-    Δ→Δ₂ (f , l , m , r) .fst (suc (suc zero) , _) = f (suc (n ∸ k) , ∸-<ᵗ n k)
+    Δ→Δ₂ (f , l , m , r) .fst (suc zero , _) = f (injectSuc k)
+    Δ→Δ₂ (f , l , m , r) .fst (suc (suc zero) , _) = f (fsuc k)
     Δ→Δ₂ (f , l , m , r) .fst (suc (suc (suc zero)) , _) = 0l
     Δ→Δ₂ (f , l , m , r) .snd .fst = refl
     Δ→Δ₂ (f , l , m , r) .snd .snd .fst = refl
     Δ→Δ₂ (f , l , m , r) .snd .snd .snd (zero , s) = ∧l-1l _
     Δ→Δ₂ (f , l , m , r) .snd .snd .snd (suc zero , s) =
       subst2 _≤'_ refl (cong f PathFin)
-                       (r (n ∸ k , ∸-<ᵗ n k))
+                       (r k)
     Δ→Δ₂ (f , l , m , r) .snd .snd .snd (suc (suc zero) , s) = 0l-∧l _
 
     Λ→Δ₂ : Λ n k → Δ 2
@@ -234,41 +229,39 @@ module HornLifting (I' : Interval ℓ) where
     λ→λ⊠ᵐλ₂,₁ .snd .snd x = refl
 
   -- definition of the retraction (ƛ n k) ⊠ᵐ (ƛ 2 1) → (ƛ n k)
-  module _ (n k : ℕ) where
+  module _ (n : ℕ) (k : Fin (suc n)) where
   -- step one: map beween codomains Δ×Δ₂→Δ : cod ((ƛ n k) ⊠ᵐ (ƛ 2 1)) → cod (ƛ n k)
     -- underlying map
     Δ×Δ₂→Δ-map-helper : Δ n × Δ 2 → (i : Fin (suc (suc n)))
-      → Trichotomyᵗ (fst i) (n ∸ k) → 𝐈
+      → Trichotomyᵗ (fst i) (fst k) → 𝐈 -- Trichotomyᵗ (fst i) ? (n ∸ k) → 𝐈
     Δ×Δ₂→Δ-map-helper ((x , p) , y , q) (i , s) (lt x₁) =
-       x (i , <ᵗ-trans x₁ (∸-<ᵗ-suc n k)) ∨l y (1 , tt)
+      (x (i , s)) ∨l (y (1 , tt))
     Δ×Δ₂→Δ-map-helper ((x , p) , y , q) (i , s) (eq x₁) =
-      x (i , subst (_<ᵗ suc (suc n)) (sym x₁)
-                               (∸-<ᵗ-suc n k))
-              ∨l y (1 , tt)
+      (x (i , s)) ∨l (y (1 , tt))
     Δ×Δ₂→Δ-map-helper ((x , p) , y , q) (i , s) (gt x₁) =
-      x (i , s) ∧l y (2 , tt)
+      (x (i , s)) ∧l (y (2 , tt))
 
     Δ×Δ₂→Δ-map : Δ n × Δ 2 → Fin (suc (suc n)) → 𝐈
-    Δ×Δ₂→Δ-map s i = Δ×Δ₂→Δ-map-helper s i (fst i ≟ᵗ (n ∸ k))
+    Δ×Δ₂→Δ-map s i = Δ×Δ₂→Δ-map-helper s i (fst i ≟ᵗ fst k)
 
     -- underlying map sends 0 to 1
     Δ×Δ₂→Δ-0↦1 : (x : _) (y : _) → Δ×Δ₂→Δ-map (x , y) fzero ≡ 1l
-    Δ×Δ₂→Δ-0↦1 (x , p) (y , q) with (0 ≟ᵗ (n ∸ k))
+    Δ×Δ₂→Δ-0↦1 (x , p) (y , q) with (0 ≟ᵗ fst k)
     ... | lt x₁ = cong (_∨l y (1 , tt)) (fst p) ∙ 1l-∨l _
     ... | eq x₁ = cong (_∨l y (1 , tt)) (fst p) ∙ 1l-∨l _
 
     -- underlying map sends 1 to 0
     Δ×Δ₂→Δ-1↦0 : (x : _) (y : _) → Δ×Δ₂→Δ-map (x , y) flast ≡ 0l
-    Δ×Δ₂→Δ-1↦0 (x , (_ , p , _)) (y , (_ , q , _)) with (suc n ≟ᵗ (n ∸ k))
-    ... | lt x₁ = Empty.rec (¬m<ᵗm {m = suc n} (<ᵗ-trans {n = suc n} x₁ (∸-<ᵗ n k)))
-    ... | eq x₁ = Empty.rec (¬m<ᵗm {m = suc n} (subst (_<ᵗ suc n) (sym x₁) (∸-<ᵗ n k)))
+    Δ×Δ₂→Δ-1↦0 (x , (_ , p , _)) (y , (_ , q , _)) with (suc n ≟ᵗ fst k)
+    ... | lt x₁ = Empty.rec (¬m<ᵗm {m = suc n} (<ᵗ-trans x₁ (snd k)))
+    ... | eq x₁ = Empty.rec (¬m<ᵗm {m = suc n} (subst (_<ᵗ suc n) (sym x₁) (snd k)))
     ... | gt x₁ = cong₂ _∧l_ (cong x (Σ≡Prop (λ _ → isProp<ᵗ) refl) ∙ p) refl
                 ∙ 0l-∧l _
 
-    -- underlying map sends 1 to 0
+    -- the decreasing condition
     Δ×Δ₂→Δ-decr : (x : _) (y : _) (i : Fin (suc n))
       → Δ×Δ₂→Δ-map (x , y) (fsuc i) ≤' Δ×Δ₂→Δ-map (x , y) (injectSuc i)
-    Δ×Δ₂→Δ-decr (x , p) (y , q) (i , i<) with (i ≟ᵗ (n ∸ k)) | (suc i ≟ᵗ (n ∸ k))
+    Δ×Δ₂→Δ-decr (x , p) (y , q) (i , i<) with (i ≟ᵗ fst k) | (suc i ≟ᵗ fst k)
     ... | lt x₁ | lt x₂ = sym (∨lRdist∧l _ _ _)
                         ∙ cong₂ _∨l_ (cong₂ _∧l_ (cong x PathFin) (cong x PathFin)
                                      ∙ p .snd .snd (i , i<)
@@ -312,15 +305,16 @@ module HornLifting (I' : Interval ℓ) where
     Δ×Δ₂→Δ (x , y) .snd .snd .snd = Δ×Δ₂→Δ-decr x y
 
   -- Step 2: map between domains domains Δ×Δ₂→Δ : dom ((ƛ n k) ⊠ᵐ (ƛ 2 1)) → dom (ƛ n k)
-    -- need some technical lemmas about when Δ×Δ₂→Δ in constant
+    -- need some technical lemmas about when Δ×Δ₂→Δ is constant
   private
-    Δ×Δ₂→Δ-constant₁ : (n k : ℕ) (x : Δ n) (y : _) (j : Fin (suc n))
-      → ¬ fst j ≡ n ∸ k
+    Δ×Δ₂→Δ-constant₁ : (n : ℕ) (k : Fin (suc n))
+                       (x : Δ n) (y : Δ 2) (j : Fin (suc n))
+      → ¬ j ≡ k
       → fst x (injectSuc j) ≡ fst x (fsuc j)
       → Δ×Δ₂→Δ-map n k (x , y) (injectSuc j)
        ≡ Δ×Δ₂→Δ-map n k (x , y) (fsuc j)
     Δ×Δ₂→Δ-constant₁ n k (x , p) (y , q) (j , j<) w s
-      with (j ≟ᵗ (n ∸ k)) | (suc j ≟ᵗ (n ∸ k))
+      with (j ≟ᵗ fst k) | (suc j ≟ᵗ fst k)
     ... | lt x₁ | lt x₂ =
       cong (_∨l y (1 , tt)) (cong x PathFin ∙ s ∙ cong x PathFin)
     ... | lt x₁ | eq x₂ =
@@ -328,137 +322,146 @@ module HornLifting (I' : Interval ℓ) where
     ... | lt x₁ | gt x₂ = Empty.rec (falseDichotomies.gt-lt (x₁ , x₂))
     ... | eq x₁ | lt x₂ = Empty.rec (falseDichotomies.lt-eq (x₂ , cong suc x₁))
     ... | eq x₁ | eq x₂ = Empty.rec (falseDichotomies.eq-eq (x₂ , cong suc x₁))
-    ... | eq x₁ | gt x₂ = Empty.rec (w x₁)
+    ... | eq x₁ | gt x₂ = Empty.rec (w (toℕ-injective x₁))
     ... | gt x₁ | lt x₂ = Empty.rec (falseDichotomies.gt-lt
                                       (x₂ , <ᵗ-trans x₁ (<ᵗ-trans <ᵗsucm <ᵗsucm)))
     ... | gt x₁ | eq x₂ = Empty.rec (falseDichotomies.lt-eq (x₁ , sym x₂))
     ... | gt x₁ | gt x₂ = cong (_∧l y (2 , tt)) s
 
 
-    Δ×Δ₂→Δ-constant₂ : (n k : ℕ) → (0 <ᵗ k) → (k <ᵗ n)
-      → (x : _) (y : _)
-      → fst y (2 , tt) ≡ fst y (3 , tt)
-      → Δ×Δ₂→Δ-map n k (x , y) (injectSuc (n , <ᵗsucm))
-       ≡ Δ×Δ₂→Δ-map n k (x , y) (fsuc (n , <ᵗsucm))
-    Δ×Δ₂→Δ-constant₂ n k 0k kn (x , p) y r with (n ≟ᵗ (n ∸ k)) | (suc n ≟ᵗ (n ∸ k))
-    ... | lt x₁ | t = Empty.rec (falseDichotomies.gt-lt (∸-<ᵗ n k , x₁))
+    Δ×Δ₂→Δ-constant₂ : (n : ℕ) (k : Fin (suc n)) → ¬ fzero ≡ k
+      → (x : Δ n) (y : Δ 2)
+      → ⟦ y ⟧ fzero ≡ ⟦ y ⟧ fone
+      → Δ×Δ₂→Δ-map n k (x , y) fzero
+       ≡ Δ×Δ₂→Δ-map n k (x , y) fone
+    Δ×Δ₂→Δ-constant₂ n k k-nonzero x y p with (0 ≟ᵗ fst k) | (1 ≟ᵗ fst k)
+    ... | lt x₁ | lt x₂ = eq₂
+     where
+      eq₁ : ⟦ y ⟧ fone ≡ 1l
+      eq₁ = sym p ∙ fst (snd y)
+      eq₂ : ⟦ x ⟧ fzero ∨l ⟦ y ⟧ fone
+            ≡ ⟦ x ⟧ fone ∨l ⟦ y ⟧ fone
+      eq₂ = cong (⟦ x ⟧ fzero ∨l_) eq₁
+          ∙ ∨l-1l (⟦ x ⟧ fzero)
+          ∙ sym (∨l-1l (⟦ x ⟧ fone))
+          ∙ cong (⟦ x ⟧ fone ∨l_) (sym eq₁)
+    ... | lt x₁ | eq x₂ = eq₂
+     where
+      eq₁ : ⟦ y ⟧ fone ≡ 1l
+      eq₁ = sym p ∙ fst (snd y)
+      eq₂ : ⟦ x ⟧ fzero ∨l ⟦ y ⟧ fone
+            ≡ ⟦ x ⟧ fone ∨l ⟦ y ⟧ fone
+      eq₂ = cong (⟦ x ⟧ fzero ∨l_) eq₁
+          ∙ ∨l-1l (⟦ x ⟧ fzero)
+          ∙ sym (∨l-1l (⟦ x ⟧ fone))
+          ∙ cong (⟦ x ⟧ fone ∨l_) (sym eq₁)
+    ... | lt x₁ | gt x₂ = Empty.rec (¬squeeze (x₂ , x₁))
     ... | eq x₁ | lt x₂ = Empty.rec (falseDichotomies.lt-eq (x₂ , cong suc x₁))
     ... | eq x₁ | eq x₂ = Empty.rec (falseDichotomies.eq-eq (x₂ , cong suc x₁))
-    Δ×Δ₂→Δ-constant₂ (suc n) (suc k) 0k kn x y r | eq x₁ | gt x₂ =
-      Empty.rec (¬m<ᵗm (subst (_<ᵗ suc n) (sym x₁) (∸-<ᵗ n k)))
-    ... | gt x₁ | lt x₂ = Empty.rec (falseDichotomies.gt-lt
-                                      (x₂ , <ᵗ-trans x₁ (<ᵗ-trans <ᵗsucm <ᵗsucm)))
-    ... | gt x₁ | eq x₂ = Empty.rec (falseDichotomies.lt-eq (x₁ , sym x₂))
-    ... | gt x₁ | gt x₂ =
-        cong₂ _∧l_ refl (r ∙ fst (snd (snd y)))
-      ∙ (∧l-0l _ ∙ sym (∧l-0l _ ))
-      ∙ cong₂ _∧l_ refl (sym (r ∙ fst (snd (snd y))))
+    ... | eq x₁ | gt x₂ = Empty.rec (k-nonzero (toℕ-injective x₁))
 
-    Δ×Δ₂→Δ-constant₃ : (n k : ℕ) → (0 <ᵗ k) → (k <ᵗ n)
-      → (x : _) (y : _)
-      → _
-      → (s : Trichotomyᵗ 0 (n ∸ k))
-      → (t : Trichotomyᵗ 1 (n ∸ k))
-      → Δ×Δ₂→Δ-map-helper n k (x , y) (0 , tt) s
-       ≡ Δ×Δ₂→Δ-map-helper n k (x , y) (1 , tt) t
-    Δ×Δ₂→Δ-constant₃ n k 0k kn x (y , q) s (lt x₁) (lt x₂) =
-      sym (cong₂ _∨l_ refl (sym (fst q) ∙ s))
-      ∙ (∨l-1l _ ∙ sym (∨l-1l _))
-      ∙ cong₂ _∨l_ refl (sym (fst q) ∙ s)
-    Δ×Δ₂→Δ-constant₃ n k 0k kn x (y , q) s (lt x₁) (eq x₂) =
-      sym (cong₂ _∨l_ refl (sym (fst q) ∙ s))
-      ∙ (∨l-1l _ ∙ sym (∨l-1l _))
-      ∙ cong₂ _∨l_ refl (sym (fst q) ∙ s)
-    Δ×Δ₂→Δ-constant₃ n k 0k kn x y s (lt x₁) (gt x₂) =
-      Empty.rec (falseDichotomies.gt-lt (x₁ , x₂))
-    Δ×Δ₂→Δ-constant₃ n k 0k kn x y s (eq x₁) t =
-      Empty.rec (¬m<ᵗm (subst (k <ᵗ_) (lem n k kn x₁) kn))
-      where
-      lem : (n k : ℕ) → k <ᵗ n → 0 ≡ n ∸ k → (n ≡ k)
-      lem (suc n) zero q r = sym r
-      lem (suc n) (suc k) q r = cong suc (lem n k q r)
+    Δ×Δ₂→Δ-constant₃ : (n : ℕ) (k : Fin (suc n)) → ¬ flast ≡ k
+      → (x : Δ n) (y : Δ 2)
+      → ⟦ y ⟧ (2 , tt) ≡ ⟦ y ⟧ (3 , tt)
+      → Δ×Δ₂→Δ-map n k (x , y) (injectSuc flast)
+       ≡ Δ×Δ₂→Δ-map n k (x , y) (fsuc flast)
+    Δ×Δ₂→Δ-constant₃ n k k-notlast x y p with (n ≟ᵗ fst k) | (suc n ≟ᵗ fst k)
+    ... | lt x₁ | _ = Empty.rec (falseDichotomies.gt-lt (x₁ , snd k))
+    ... | eq x₁ | t = Empty.rec (k-notlast (toℕ-injective x₁))
+    ... | gt x₁ | lt x₂ = Empty.rec (falseDichotomies.lt-gt (x₁ , x₂))
+    ... | gt x₁ | eq x₂ = Empty.rec (falseDichotomies.eq-gt (x₂ , x₁))
+    ... | gt x₁ | gt x₂ = eq₃
+     where
+      eq₁ : ⟦ y ⟧ (3 , tt) ≡ 0l
+      eq₁ = fst (snd (snd y))
+      eq₂ : ⟦ y ⟧ (2 , tt) ≡ 0l
+      eq₂ = p ∙ eq₁
+      eq₃ : ⟦ x ⟧ (injectSuc flast) ∧l ⟦ y ⟧ (2 , tt)
+            ≡ ⟦ x ⟧ (fsuc flast) ∧l ⟦ y ⟧ (2 , tt)
+      eq₃ = cong (⟦ x ⟧ (injectSuc flast) ∧l_) eq₂
+          ∙ ∧l-0l (⟦ x ⟧ (injectSuc flast))
+          ∙ sym (∧l-0l (⟦ x ⟧ (fsuc flast)))
+          ∙ cong (⟦ x ⟧ (fsuc flast) ∧l_) (sym eq₂)
 
   -- complete definition of map between domains
-  Dom[λ⊠ᵐλ₂₁]→Λ : (n k : ℕ) → (0 <ᵗ k) → (k <ᵗ n)
+  Dom[λ⊠ᵐλ₂₁]→Λ : (n : ℕ) (k : Fin (suc n)) → ¬ fzero ≡ k → ¬ flast ≡ k
     → Dom (⦅ ƛ n k ⦆ ⊠ᵐ ⦅ ƛ 2 1 ⦆) → Λ n k
-  Dom[λ⊠ᵐλ₂₁]→Λ n k 0k kn =
-    rec∣inl (x , y) ↦ (Δ×Δ₂→Δ n k (fst x , y))
-                     , PT.map (λ j → fst j , fst (snd j)
-                                    , Δ×Δ₂→Δ-constant₁ n k (fst x) y (fst j)
-                                                (fst (snd j)) (snd (snd j)))
+  Dom[λ⊠ᵐλ₂₁]→Λ n k k-notzero k-notlast =
+    rec∣inl (x , y) ↦ (Δ×Δ₂→Δ n k (fst x , y)) ,
+                       PT.map (λ j → fst j , fst (snd j)
+                                 , Δ×Δ₂→Δ-constant₁ n k (fst x) y (fst j)
+                                                    (fst (snd j)) (snd (snd j)))
                               (snd x)
-       ∣inr (x , y) ↦ (Δ×Δ₂→Δ n k (x , fst y))
-         , PT.map (λ { ((zero , j<) , p , q)
-                     → fzero , snd (ineqlem₂ n k 0k kn)
-                      , Δ×Δ₂→Δ-constant₃ n k 0k kn x (fst y) q _ _
-                     ; ((suc zero , j<) , p , q) → Empty.rec (p refl)
-                     ; ((suc (suc zero) , j<) , p , q)
-                     → (n , <ᵗsucm) , (fst (ineqlem₂ n k 0k kn))
-                     , Δ×Δ₂→Δ-constant₂ n k 0k kn x (fst y) q})
-                  (snd y)
+       ∣inr (x , y) ↦ (Δ×Δ₂→Δ n k (x , fst y)) ,
+                       PT.map (λ { ((0 , j<) , p , q) →
+                                   fzero , k-notzero
+                                 , Δ×Δ₂→Δ-constant₂ n k k-notzero x (fst y) q
+                                 ; ((suc zero , tt) , p , q) → Empty.rec (p refl)
+                                 ; ((suc (suc zero) , _) , p , q)
+                                   → flast , k-notlast ,
+                                     Δ×Δ₂→Δ-constant₃ n k k-notlast x (fst y) q
+                                 })
+                              (snd y)
        ∣push (x , y) ↦ Σ≡Prop (λ _ → squash₁) refl
-    where
-    ineqlem₁ : (n k : ℕ) → 0 <ᵗ k → k <ᵗ suc n → 0 <ᵗ (suc n ∸ k)
-    ineqlem₁ zero zero _ _ = tt
-    ineqlem₁ (suc n) (suc k) p q with (k ≟ᵗ 0)
-    ... | eq x = subst (0 <ᵗ_) (cong (suc n ∸_) (sym x)) tt
-    ... | gt x = ineqlem₁ n k x q
-
-    ineqlem₂ : (n k : ℕ) → 0 <ᵗ k → k <ᵗ n → (¬ n ≡ n ∸ k) × (¬ (0 ≡ n ∸ k))
-    ineqlem₂ (suc n) (suc k) p q .fst r =
-      ¬m<ᵗm {m = suc n} (subst (_<ᵗ (suc n)) (sym r) (∸-<ᵗ n k))
-    ineqlem₂ (suc n) k p q .snd r = subst (0 <ᵗ_) (sym r) (ineqlem₁ n k p q)
 
   -- Definition of retraction
-  λ⊠ᵐλ₂,₁→λ : (n k : ℕ) → 0 <ᵗ k → k <ᵗ n → Map[ ⦅ ƛ n k ⦆ ⊠ᵐ ⦅ ƛ 2 1 ⦆ , ⦅ ƛ n k ⦆ ]
+  λ⊠ᵐλ₂,₁→λ : (n : ℕ) (k : Fin (suc n)) → ¬ fzero ≡ k → ¬ flast ≡ k
+            → Map[ ⦅ ƛ n k ⦆ ⊠ᵐ ⦅ ƛ 2 1 ⦆ , ⦅ ƛ n k ⦆ ]
   λ⊠ᵐλ₂,₁→λ n k p q .fst = Dom[λ⊠ᵐλ₂₁]→Λ n k p q
-  λ⊠ᵐλ₂,₁→λ n k p q .snd .fst = Δ×Δ₂→Δ n k
-  λ⊠ᵐλ₂,₁→λ n k p q .snd .snd =
-      elimProp _ (λ _ → isSetΔ _ _)
-                 (λ _ → refl)
-                 (λ _ → refl)
+  λ⊠ᵐλ₂,₁→λ n k _ _ .snd .fst = Δ×Δ₂→Δ n k
+  λ⊠ᵐλ₂,₁→λ n k _ _ .snd .snd =
+   elimProp _ (λ _ → isSetΔ _ _) (λ _ → refl) (λ _ → refl)
 
+  λ-retr-⊠ᵐ : (n : ℕ) (k : Fin (suc n)) → ¬ fzero ≡ k → ¬ flast ≡ k
+            → retractMap ⦅ ƛ n k ⦆ (⦅ ƛ n k ⦆ ⊠ᵐ ⦅ ƛ 2 1 ⦆)
+  λ-retr-⊠ᵐ n k _ _ .fst = λ→λ⊠ᵐλ₂,₁ n k
+  λ-retr-⊠ᵐ n k p q .snd .fst = λ⊠ᵐλ₂,₁→λ n k p q
+  λ-retr-⊠ᵐ n k p q .snd .snd =
+   ΣPathP (funExt retractS
+   , ΣPathPProp (λ _ → isPropΠ (λ _ → isSetΔ _ _))
+                (funExt retractT))
+   where
+    retractProof : (x : Δ n) (t : Fin (2 + n))
+                 →  Δ×Δ₂→Δ-map n k (x , Δ→Δ₂ n k x) t ≡ ⟦ x ⟧ t
+    retractProof x t with fst t ≟ᵗ fst k
+    ... | lt x₁ = eq₂
+     where
+      ineq : ⟦ x ⟧ (injectSuc k) ≤' ⟦ x ⟧ t
+      ineq = decreasingΔ' x t (injectSuc k) x₁
+      eq₁ : ⟦ x ⟧ (injectSuc k) ∨l ⟦ x ⟧ t ≡ ⟦ x ⟧ t
+      eq₁ = Order.≤m→≤j ((𝐈 , (latticestr 0l 1l _ _ isLattice)))
+                        (⟦ x ⟧ (injectSuc k))
+                        (⟦ x ⟧ t)
+                        ineq
+      eq₂ : ⟦ x ⟧ t ∨l ⟦ x ⟧ (injectSuc k) ≡ ⟦ x ⟧ t
+      eq₂ = ∨lComm _ _ ∙ eq₁
+    ... | eq x₁ = cong₂ _∨l_ refl (cong ⟦ x ⟧ (toℕ-injective (sym x₁)))
+                ∙ idem∨ (⟦ x ⟧ t)
+    ... | gt x₁ = decreasingΔ x (fsuc k) t x₁
 
-  λ-retr-⊠ᵐ :  (n k : ℕ) → 0 <ᵗ k → k <ᵗ n → retractMap ⦅ ƛ n k ⦆ (⦅ ƛ n k ⦆ ⊠ᵐ ⦅ ƛ 2 1 ⦆)
-  λ-retr-⊠ᵐ n k 0k kn .fst = λ→λ⊠ᵐλ₂,₁ n k
-  λ-retr-⊠ᵐ n k 0k kn .snd .fst = λ⊠ᵐλ₂,₁→λ n k 0k kn
-  λ-retr-⊠ᵐ n k 0k kn .snd .snd =
-      ΣPathP (funExt retractS
-    , ΣPathPProp (λ _ → isPropΠ λ _ → isSetΔ _ _)
-              (funExt retractT))
-    where
-    retractProof : (n k : ℕ) → 0 <ᵗ k → k <ᵗ n
-      → (x : Δ n) (t : _)
-      → Δ×Δ₂→Δ-map n k (x , Δ→Δ₂ n k x) t ≡ x .fst t
-    retractProof n k 0k kn (x , p) t with (fst t ≟ᵗ (n ∸ k))
-    ... | lt x₁ = (cong₂ _∨l_ (cong x PathFin) refl ∙ ∨lComm _ _)
-                ∙ Order.≤m→≤j (𝐈 , (latticestr 0l 1l _ _ isLattice))
-                               (x (n ∸ k , ∸-<ᵗ-suc n k)) (x t)
-                  (decreasingΔ (x , p) _ _ (<ᵗ-trans x₁ <ᵗsucm))
-    ... | eq x₁ = cong₂ _∨l_ (cong x PathFin)
-                             (cong x (Σ≡Prop (λ _ → isProp<ᵗ) (sym x₁)))
-                             ∙ idem∨ _
-    ... | gt x₁ = decreasingΔ (x , p) (suc (n ∸ k) , ∸-<ᵗ n k) t x₁
+    retractT : (x : Δ n) → Δ×Δ₂→Δ n k (x , Δ→Δ₂ n k x) ≡ x
+    retractT x = Σ≡Prop isProp-hasΔStr (funExt (retractProof x))
 
-    retractT : (x : _) → Δ×Δ₂→Δ n k (x , Δ→Δ₂ n k x) ≡ x
-    retractT x = Σ≡Prop isProp-hasΔStr (funExt (retractProof n k 0k kn x))
-
-    retractS : (x : _) → Dom[λ⊠ᵐλ₂₁]→Λ n k 0k kn (inl (x , Λ→Δ₂ n k x)) ≡ x
+    retractS : (x : Λ n k)
+             → Dom[λ⊠ᵐλ₂₁]→Λ n k p q (inl (x , Λ→Δ₂ n k x)) ≡ x
     retractS x = Σ≡Prop (λ _ → squash₁) (retractT (fst x))
 
-  isInnerAnodyneHornInclusion : (n k : ℕ) → 0 <ᵗ k → k <ᵗ n → isInnerAnodyne ⦅ ƛ n k ⦆
-  isInnerAnodyneHornInclusion n k 0k kn (X , isSegalX) =
-    retract⊥ _ ⦅ ƛ n k ⦆ ⦅ terminal* X ⦆
+  isInnerAnodyneHornInclusion
+   : (n : ℕ) (k : Fin (suc n)) → ¬ fzero ≡ k → ¬ flast ≡ k
+   → isInnerAnodyne ⦅ ƛ n k ⦆
+  isInnerAnodyneHornInclusion n k p q (X , isSegalX) =
+   retract⊥ _ ⦅ ƛ n k ⦆ ⦅ terminal* X ⦆
               (subst (retractMap ⦅ ƛ n k ⦆)
                      (invEq univalenceMap (comm⊠ᵐ _ _))
-                     (λ-retr-⊠ᵐ n k 0k kn))
+                     (λ-retr-⊠ᵐ n k p q))
               (⊠⊥ _ _ _ isSegalX)
 
-  isInnerAnodyneFibHornInclusion :
-    (n k : ℕ) → 0 <ᵗ k → k <ᵗ n → isInnerAnodyneFib ⦅ ƛ n k ⦆
-  isInnerAnodyneFibHornInclusion n k 0k kn p fb =
-    retract⊥ _ ⦅ ƛ n k ⦆ ⦅ p ⦆
+  isInnerAnodyneFibHornInclusion
+   : (n : ℕ) (k : Fin (suc n)) → ¬ fzero ≡ k → ¬ flast ≡ k
+   → isInnerAnodyneFib ⦅ ƛ n k ⦆
+  isInnerAnodyneFibHornInclusion n k k-cond₁ k-cond₂ p fb =
+   retract⊥ _ ⦅ ƛ n k ⦆ ⦅ p ⦆
               (subst (retractMap ⦅ ƛ n k ⦆)
                      (invEq univalenceMap (comm⊠ᵐ _ _))
-                     (λ-retr-⊠ᵐ n k 0k kn))
-     (⊠⊥ _ _ _ fb)
+                     (λ-retr-⊠ᵐ n k k-cond₁ k-cond₂))
+              (⊠⊥ _ _ _ fb)
